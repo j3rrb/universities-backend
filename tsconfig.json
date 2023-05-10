@@ -8,7 +8,9 @@
     "allowSyntheticDefaultImports": true,
     "target": "es2017",
     "paths": {
-      "^@modules/*": ["./src/modules/*"]
+      "@modules/*": ["./src/modules/*"],
+      "@jobs/*": ["./src/jobs/*"],
+      "@queues/*": ["./src/queues/*"]
     },
     "sourceMap": true,
     "outDir": "./dist",

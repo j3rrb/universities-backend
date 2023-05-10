@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    restart: on-failure
+    tty: true
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - default
+
+  mongodb:
+    image: mongo
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
+    ports:
+      - "27017:27017"
+    restart: on-failure
+    volumes:
+      - mongo:/data/db
+    networks:
+      - default
+
+  redis:
+    image: redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    restart: on-failure
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+    networks:
+      - default
+
+  # nginx:
+  #   build:
+  #     dockerfile: Dockerfile
+  #     context: nginx
+  #   restart: unless-stopped
+  #   tty: true
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/ngnix.conf
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - default
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  redis:
+    driver: local
+  mongo:
