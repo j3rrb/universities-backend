@@ -41,7 +41,7 @@ export default class EmailService {
         throw new Error('O template não existe');
       }
 
-      const fileBuffer = await readFileSync(templatePath, { flag: 'r' });
+      const fileBuffer = readFileSync(templatePath, { flag: 'r' });
       const template = fileBuffer.toString();
 
       const parsed = compile(template)(vars);
@@ -54,8 +54,12 @@ export default class EmailService {
         html,
       });
 
-      this.logger.debug(`E-mail de recuperação de senha enviado para ${email}`);
+      this.logger.debug(
+        `E-mail enviado para ${email}. Pode ser que demore um pouco para chegar`,
+      );
     } catch (error) {
+      this.logger.error(`Erro ao enviar e-mail: ${error.message}`);
+
       throw new Error(error);
     }
   }

@@ -29,14 +29,12 @@ import { isJSONString } from 'src/utils/validators';
 
 import CreateUniversityDTO from './dtos/create.dto';
 import UpdateUniversityDTO from './dtos/update.dto';
-import { UniversityService } from './unversity.service';
 
 @Controller('universities')
 @ApiTags('Universidades')
 export class UniversityController {
   constructor(
     @InjectQueue('university') private readonly universityQueue: Queue,
-    private readonly universityService: UniversityService,
   ) {}
 
   @Post()
@@ -54,20 +52,9 @@ export class UniversityController {
 
       return finishedJobData;
     } catch (error) {
-      let errorObj = null;
+      const errorObj = JSON.parse(error.message);
 
-      if (isJSONString(error.message)) {
-        errorObj = JSON.parse(error.message);
-      }
-
-      if (errorObj !== null) {
-        throw new HttpException(errorObj.message, errorObj.code);
-      }
-
-      throw new HttpException(
-        'Houve um erro ao criar a universidade',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(errorObj.message, errorObj.code);
     }
   }
 
@@ -96,20 +83,9 @@ export class UniversityController {
 
       return finishedJobData;
     } catch (error) {
-      let errorObj = null;
+      const errorObj = JSON.parse(error.message);
 
-      if (isJSONString(error.message)) {
-        errorObj = JSON.parse(error.message);
-      }
-
-      if (errorObj !== null) {
-        throw new HttpException(errorObj.message, errorObj.code);
-      }
-
-      throw new HttpException(
-        'Houve um erro ao buscar as universidades',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(errorObj.message, errorObj.code);
     }
   }
 
@@ -127,20 +103,9 @@ export class UniversityController {
 
       return finishedJobData;
     } catch (error) {
-      let errorObj = null;
+      const errorObj = JSON.parse(error.message);
 
-      if (isJSONString(error.message)) {
-        errorObj = JSON.parse(error.message);
-      }
-
-      if (errorObj !== null) {
-        throw new HttpException(errorObj.message, errorObj.code);
-      }
-
-      throw new HttpException(
-        'Houve um erro ao buscar a universidade',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(errorObj.message, errorObj.code);
     }
   }
 
@@ -158,20 +123,9 @@ export class UniversityController {
 
       return finishedJobData;
     } catch (error) {
-      let errorObj = null;
+      const errorObj = JSON.parse(error.message);
 
-      if (isJSONString(error.message)) {
-        errorObj = JSON.parse(error.message);
-      }
-
-      if (errorObj !== null) {
-        throw new HttpException(errorObj.message, errorObj.code);
-      }
-
-      throw new HttpException(
-        'Houve um erro ao editar a universidade',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(errorObj.message, errorObj.code);
     }
   }
 
@@ -186,20 +140,9 @@ export class UniversityController {
 
       return finishedJobData;
     } catch (error) {
-      let errorObj = null;
+      const errorObj = JSON.parse(error.message);
 
-      if (isJSONString(error.message)) {
-        errorObj = JSON.parse(error.message);
-      }
-
-      if (errorObj !== null) {
-        throw new HttpException(errorObj.message, errorObj.code);
-      }
-
-      throw new HttpException(
-        'Houve um erro ao remover a universidade',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(errorObj.message, errorObj.code);
     }
   }
 }

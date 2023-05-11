@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { UniversityService } from '@modules/university/unversity.service';
+import UniversityService from '@modules/university/unversity.service';
 
 @Injectable()
 export class UniversityJob {

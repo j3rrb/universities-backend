@@ -5,13 +5,14 @@ import { uniqWith } from 'lodash';
 import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { UNIVERSITIES_API_URL } from 'src/constants';
+import { isJSONString } from 'src/utils/validators';
 
 import CreateUniversityDTO from './dtos/create.dto';
 import UpdateUniversityDTO from './dtos/update.dto';
 import University from './university.schema';
 
 @Injectable()
-export class UniversityService {
+export default class UniversityService {
   constructor(
     @InjectModel(University.name)
     private readonly universityModel: Model<University>,
@@ -104,25 +105,41 @@ export class UniversityService {
           }),
         );
 
-      const createdDoc = new this.universityModel(data);
+      const createdDoc = await this.universityModel.create(data);
 
-      return createdDoc.save();
+      return createdDoc;
     } catch (error) {
       this.logger.error(`Erro ao criar a universidade: ${error.message}`);
 
-      throw new Error(error.message);
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
+
+      throw new Error(
+        JSON.stringify({
+          message: 'Houve um erro ao criar a universidade',
+          code: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
+      );
     }
   }
 
-  async getAll(country?: string, limit = 20, page = 1) {
+  async getAll(countryName?: string, limit = 20, page = 1) {
     try {
-      const paginationOptions = { skip: limit * page, limit };
-      const filters = {
-        country: { $regex: new RegExp(`^${country.toLowerCase()}`, 'i') },
-      };
+      const filters = countryName
+        ? {
+            country: {
+              $regex: new RegExp('^' + countryName + '$', 'i'),
+            },
+          }
+        : undefined;
 
       const data = await this.universityModel
-        .find(filters, undefined, paginationOptions)
+        .find(filters)
+        .skip(limit * (page - 1))
+        .limit(limit)
         .select({ _id: 1, name: 1, country: 1, 'state-province': 1 })
         .exec();
 
@@ -132,9 +149,15 @@ export class UniversityService {
     } catch (error) {
       this.logger.error(`Erro ao buscar as universidades: ${error.message}`);
 
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
+
       throw new Error(
         JSON.stringify({
-          message: 'Houve um erro ao buscar as universidades',
+          message: 'Houve um erro ao buscar as universidade',
           code: HttpStatus.INTERNAL_SERVER_ERROR,
         }),
       );
@@ -143,13 +166,37 @@ export class UniversityService {
 
   async getById(id: string) {
     try {
-      const doc = await this.universityModel.findById(id).exec();
+      if (ObjectId.isValid(id)) {
+        const doc = this.universityModel.findById(id);
 
-      return doc;
+        if (!doc) {
+          throw new Error(
+            JSON.stringify({
+              message: 'Universidade não encontrada',
+              code: HttpStatus.NOT_FOUND,
+            }),
+          );
+        }
+
+        return doc;
+      } else {
+        throw new Error(
+          JSON.stringify({
+            message: 'ID inválido',
+            code: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Erro ao buscar a universidade pelo ID: ${error.message}`,
       );
+
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
 
       throw new Error(
         JSON.stringify({
@@ -162,11 +209,20 @@ export class UniversityService {
 
   async getByName(name: string) {
     try {
-      const data = await this.universityModel
+      const data = this.universityModel
         .findOne({
           name,
         })
         .exec();
+
+      if (!data) {
+        throw new Error(
+          JSON.stringify({
+            message: 'Universidade não encontrada',
+            code: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
 
       return data;
     } catch (error) {
@@ -174,9 +230,15 @@ export class UniversityService {
         `Erro ao buscar a universidade pelo nome: ${error.message}`,
       );
 
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
+
       throw new Error(
         JSON.stringify({
-          message: 'Houve um erro ao buscar a universidade pelo nome',
+          message: 'Houve um erro ao buscar a universidade',
           code: HttpStatus.INTERNAL_SERVER_ERROR,
         }),
       );
@@ -185,17 +247,43 @@ export class UniversityService {
 
   async update(id: string, data: UpdateUniversityDTO) {
     try {
-      const updated = await this.universityModel
-        .findByIdAndUpdate(id, data, { new: true })
+      if (!ObjectId.isValid(id)) {
+        throw new Error(
+          JSON.stringify({
+            message: 'ID inválido',
+            code: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      const updated = this.universityModel
+        .findByIdAndUpdate(id, data, {
+          new: true,
+        })
         .exec();
+
+      if (!updated) {
+        throw new Error(
+          JSON.stringify({
+            message: 'Universidade não encontrada',
+            code: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
 
       return updated;
     } catch (error) {
       this.logger.error(`Erro ao atualizar a universidade: ${error.message}`);
 
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
+
       throw new Error(
         JSON.stringify({
-          message: 'Houve um erro ao atualizar a universidade',
+          message: 'Houve um erro ao editar a universidade',
           code: HttpStatus.INTERNAL_SERVER_ERROR,
         }),
       );
@@ -204,9 +292,33 @@ export class UniversityService {
 
   async remove(id: string) {
     try {
-      await this.universityModel.findByIdAndDelete(id).exec();
+      if (!ObjectId.isValid(id)) {
+        throw new Error(
+          JSON.stringify({
+            message: 'ID inválido',
+            code: HttpStatus.BAD_REQUEST,
+          }),
+        );
+      }
+
+      const removed = this.universityModel.findByIdAndDelete(id).exec();
+
+      if (!removed) {
+        throw new Error(
+          JSON.stringify({
+            mesage: 'Universidade não encontrada',
+            code: HttpStatus.NOT_FOUND,
+          }),
+        );
+      }
     } catch (error) {
       this.logger.error(`Erro ao remover a universidade: ${error.message}`);
+
+      if (isJSONString(error.message)) {
+        const errorObj = JSON.parse(error.message);
+
+        throw new Error(JSON.stringify(errorObj));
+      }
 
       throw new Error(
         JSON.stringify({

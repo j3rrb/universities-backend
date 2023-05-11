@@ -10,7 +10,13 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
-import { addSeconds, differenceInSeconds, format } from 'date-fns';
+import {
+  addSeconds,
+  differenceInSeconds,
+  format,
+  isAfter,
+  isBefore,
+} from 'date-fns';
 import { Model } from 'mongoose';
 import { generatePassword } from 'src/utils/password';
 
@@ -19,7 +25,6 @@ import UserService from '@modules/user/user.service';
 
 import Auth from './auth.schema';
 import ChangePasswordDTO from './dtos/changePassword.dto';
-import ForgotPasswordDTO from './dtos/forgotPassword.dto';
 import LoginDTO from './dtos/login.dto';
 import Token from './token.schema';
 
@@ -49,14 +54,12 @@ export default class AuthService {
       ) || FIVE_MIN_SECS;
 
     const hash = randomBytes(64).toString('base64');
-    const newToken = new this.tokenModel({
+    const newToken = await this.tokenModel.create({
       token: hash,
       expDate: addSeconds(new Date(), tokenExp),
       resendDate: addSeconds(new Date(), resendExp),
       user,
     });
-
-    await newToken.save();
 
     return newToken.token;
   }
@@ -81,9 +84,11 @@ export default class AuthService {
         );
       }
 
-      const authData = await this.authModel.findOne({
-        user,
-      });
+      const authData = await this.authModel
+        .findOne({
+          user,
+        })
+        .exec();
 
       if (!authData) {
         throw new HttpException(
@@ -102,11 +107,24 @@ export default class AuthService {
         );
       }
 
-      await this.authModel
-        .findByIdAndUpdate(authData, {
-          lastAccess: new Date().toISOString(),
-        })
+      const updatedAuth = await this.authModel
+        .findByIdAndUpdate(
+          authData.id,
+          {
+            lastAccess: new Date().toISOString(),
+          },
+          { new: true },
+        )
         .exec();
+
+      if (!updatedAuth) {
+        throw new HttpException(
+          {
+            message: 'Dados de autenticação não encontrados',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
 
       return user;
     } catch (error) {
@@ -134,19 +152,14 @@ export default class AuthService {
     try {
       const user = await this.userService.findByEmail(email);
 
-      if (!user) {
-        throw new HttpException(
-          { message: 'Usuário não encontrado' },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      const token = await this.tokenModel.findOne({
-        user,
-      });
+      const token = await this.tokenModel
+        .findOne({
+          user,
+        })
+        .exec();
 
       if (token) {
-        if (Date.now() >= new Date(token.resendDate).getTime()) {
+        if (isAfter(new Date(), new Date(token.resendDate))) {
           await this.tokenModel.findByIdAndDelete(token.id).exec();
 
           const newToken = await this.generateForgotPasswordToken(user);
@@ -203,9 +216,11 @@ export default class AuthService {
         password: currentPassword,
       });
 
-      const passwordToken = await this.tokenModel.findOne({
-        token,
-      });
+      const passwordToken = await this.tokenModel
+        .findOne({
+          token,
+        })
+        .exec();
 
       if (!passwordToken) {
         throw new HttpException(
@@ -214,7 +229,7 @@ export default class AuthService {
         );
       }
 
-      if (Date.now() >= new Date(passwordToken.expDate).getTime()) {
+      if (isBefore(new Date(), new Date(passwordToken.expDate))) {
         throw new HttpException(
           { message: 'Token expirado' },
           HttpStatus.BAD_REQUEST,
@@ -239,6 +254,10 @@ export default class AuthService {
       this.logger.error(
         `Erro ao atualizar os dados de autenticação: ${error.message}`,
       );
+
+      if (error instanceof HttpException) {
+        throw new HttpException({ message: error.message }, error.getStatus());
+      }
 
       throw new HttpException(
         { message: 'Houve um erro ao atualizar os dados de autenticação' },

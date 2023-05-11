@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as compression from 'compression';
+import * as morgan from 'morgan';
 import { CsrfFilter, nestCsrf } from 'ncsrf';
 import { AppModule } from 'src/app.module';
 
@@ -25,6 +26,7 @@ async function bootstrap() {
   app.useGlobalFilters(new CsrfFilter());
   app.use(nestCsrf());
   app.use(compression());
+  app.use(morgan('tiny'));
 
   const config = new DocumentBuilder()
     .setTitle('Universities API')

@@ -6,8 +6,10 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "target": "es2017",
     "paths": {
+      "~/*": ["*"],
       "@modules/*": ["./src/modules/*"],
       "@jobs/*": ["./src/jobs/*"],
       "@queues/*": ["./src/queues/*"]

@@ -3,7 +3,7 @@ import { Job } from 'bull';
 
 import CreateUniversityDTO from '@modules/university/dtos/create.dto';
 import UpdateUniversityDTO from '@modules/university/dtos/update.dto';
-import { UniversityService } from '@modules/university/unversity.service';
+import UniversityService from '@modules/university/unversity.service';
 
 @Processor('university')
 export default class UniversityConsumer {

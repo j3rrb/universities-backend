@@ -12,7 +12,7 @@ import LoginDTO from './dtos/login.dto';
 
 @Controller('auth')
 @ApiTags('Autenticação')
-export class AuthController {
+export default class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailService: EmailService,
@@ -54,6 +54,11 @@ export class AuthController {
         name,
       },
     );
+
+    return {
+      message:
+        'Foi enviado um e-mail contendo o token de autenticação para a alteração da senha',
+    };
   }
 
   @Public()
@@ -63,7 +68,6 @@ export class AuthController {
     description:
       'Altera a senha do usuário a partir do token fornecido pelo endpoint de solicitação de alteração de senha',
   })
-  // @Render('changePassword')
   async changePassword(@Body() dto: ChangePasswordDTO) {
     const { email } = dto;
 

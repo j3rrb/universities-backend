@@ -6,14 +6,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { AuthGuard } from 'src/guards/jwt.guard';
 
+import EmailService from '@modules/email/email.service';
 import { UserModule } from '@modules/user/user.module';
 
-import { AuthController } from './auth.controller';
+import AuthController from './auth.controller';
 import Auth, { AuthSchema } from './auth.schema';
 import AuthService from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import Token, { TokenSchema } from './token.schema';
-import EmailService from '@modules/email/email.service';
 
 @Module({
   imports: [

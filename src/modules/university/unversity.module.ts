@@ -8,7 +8,7 @@ import { UniversityJob } from 'src/jobs/university.job';
 
 import University, { UniversitySchema } from './university.schema';
 import { UniversityController } from './unversity.controller';
-import { UniversityService } from './unversity.service';
+import UniversityService from './unversity.service';
 
 @Module({
   imports: [

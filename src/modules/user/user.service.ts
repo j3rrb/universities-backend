@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { generatePassword } from 'src/utils/password';
 
@@ -26,9 +27,11 @@ export default class UserService {
         })
         .exec();
 
-      const authExists = await this.authModel.findOne({
-        user: userExists,
-      });
+      const authExists = await this.authModel
+        .findOne({
+          user: userExists,
+        })
+        .exec();
 
       if (userExists && authExists)
         throw new HttpException(
@@ -39,29 +42,24 @@ export default class UserService {
       if (userExists && !authExists) {
         const { hash, salt } = await generatePassword(data.password);
 
-        const authInstance = new this.authModel({
+        await this.authModel.create({
           hash,
           salt,
           user: userExists,
         });
-
-        await authInstance.save();
 
         return userExists;
       }
 
       const { hash, salt } = await generatePassword(data.password);
 
-      const userInstance = new this.userModel(data);
-      const createdUser = await userInstance.save();
+      const createdUser = await this.userModel.create(data);
 
-      const authInstance = new this.authModel({
+      await this.authModel.create({
         hash,
         salt,
         user: createdUser,
       });
-
-      await authInstance.save();
 
       return createdUser;
     } catch (error) {
@@ -80,7 +78,21 @@ export default class UserService {
 
   async findById(id: string) {
     try {
+      if (!ObjectId.isValid(id)) {
+        throw new HttpException(
+          { message: 'ID inválido' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const user = await this.userModel.findById(id).exec();
+
+      if (!user) {
+        throw new HttpException(
+          { message: 'Usuário não encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
 
       return user;
     } catch (error) {
@@ -97,11 +109,22 @@ export default class UserService {
     try {
       const user = await this.userModel.findOne({ email }).exec();
 
+      if (!user) {
+        throw new HttpException(
+          { message: 'Usuário não encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
       return user;
     } catch (error) {
       this.logger.error(
         `Erro ao buscar o usuário por e-mail: ${error.message}`,
       );
+
+      if (error instanceof HttpException) {
+        throw new HttpException({ message: error.message }, error.getStatus());
+      }
 
       throw new HttpException(
         { message: 'Houve um erro ao buscar o usuário' },
@@ -112,24 +135,53 @@ export default class UserService {
 
   async update(id: string, data: UpdateUserDTO) {
     try {
-      const existentUser = await this.userModel.findOne({
-        email: data.email,
-      });
+      if (!ObjectId.isValid(id)) {
+        throw new HttpException(
+          {
+            message: 'ID inválido',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const userToUpdate = await this.userModel.findById(id).exec();
+
+      if (!userToUpdate) {
+        throw new HttpException(
+          {
+            message: 'Usuário não encontrado',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const existentUser = await this.userModel
+        .findOne({
+          email: data.email,
+        })
+        .exec();
 
       if (existentUser && existentUser.id !== id) {
         throw new HttpException(
           { message: 'E-mail já utilizado por outro usuário' },
           HttpStatus.CONFLICT,
         );
-      }
-
-      if (existentUser && existentUser.id === id) {
-        return existentUser;
+      } else if (existentUser && existentUser.id === id) {
+        return userToUpdate;
       }
 
       const updated = await this.userModel
         .findByIdAndUpdate(id, data, { new: true })
         .exec();
+
+      if (!updated) {
+        throw new HttpException(
+          {
+            message: 'Usuário não encontrado',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
 
       return updated;
     } catch (error) {
@@ -148,7 +200,16 @@ export default class UserService {
 
   async remove(id: string) {
     try {
-      await this.userModel.findByIdAndDelete(id).exec();
+      const removed = await this.userModel.findByIdAndDelete(id).exec();
+
+      if (!removed) {
+        throw new HttpException(
+          {
+            message: 'Usuário não encontrado',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
     } catch (error) {
       this.logger.error(`Erro ao remover o usuário: ${error.message}`);
 
