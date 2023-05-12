@@ -104,3 +104,7 @@ Para rodá-la, utilize o comando:
 
 ```$ yarn test``` ou ```$ npm test```
 
+## Actions
+
+O repositório está configurado para realizar o build e rodar os testes do projeto ao fazer um commit na branch master. Todo o fluxo pode ser visualizado no arquivo ```ci.yml``` na pasta ```.github```.
+
