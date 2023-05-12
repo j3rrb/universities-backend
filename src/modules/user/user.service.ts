@@ -21,17 +21,13 @@ export default class UserService {
 
   async create(data: CreateUserDTO) {
     try {
-      const userExists = await this.userModel
-        .findOne({
-          email: data.email,
-        })
-        .exec();
+      const userExists = await this.userModel.findOne({
+        email: data.email,
+      });
 
-      const authExists = await this.authModel
-        .findOne({
-          user: userExists,
-        })
-        .exec();
+      const authExists = await this.authModel.findOne({
+        user: userExists,
+      });
 
       if (userExists && authExists)
         throw new HttpException(
@@ -85,7 +81,7 @@ export default class UserService {
         );
       }
 
-      const user = await this.userModel.findById(id).exec();
+      const user = await this.userModel.findById(id);
 
       if (!user) {
         throw new HttpException(
@@ -107,7 +103,7 @@ export default class UserService {
 
   async findByEmail(email: string) {
     try {
-      const user = await this.userModel.findOne({ email }).exec();
+      const user = await this.userModel.findOne({ email });
 
       if (!user) {
         throw new HttpException(
@@ -144,7 +140,7 @@ export default class UserService {
         );
       }
 
-      const userToUpdate = await this.userModel.findById(id).exec();
+      const userToUpdate = await this.userModel.findById(id);
 
       if (!userToUpdate) {
         throw new HttpException(
@@ -155,11 +151,9 @@ export default class UserService {
         );
       }
 
-      const existentUser = await this.userModel
-        .findOne({
-          email: data.email,
-        })
-        .exec();
+      const existentUser = await this.userModel.findOne({
+        email: data.email,
+      });
 
       if (existentUser && existentUser.id !== id) {
         throw new HttpException(
@@ -170,9 +164,9 @@ export default class UserService {
         return userToUpdate;
       }
 
-      const updated = await this.userModel
-        .findByIdAndUpdate(id, data, { new: true })
-        .exec();
+      const updated = await this.userModel.findByIdAndUpdate(id, data, {
+        new: true,
+      });
 
       if (!updated) {
         throw new HttpException(
@@ -200,7 +194,16 @@ export default class UserService {
 
   async remove(id: string) {
     try {
-      const removed = await this.userModel.findByIdAndDelete(id).exec();
+      if (!ObjectId.isValid(id)) {
+        throw new HttpException(
+          {
+            message: 'ID inválido',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const removed = await this.userModel.findByIdAndDelete(id);
 
       if (!removed) {
         throw new HttpException(

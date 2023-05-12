@@ -13,15 +13,15 @@ Durante o desenvolvimento desse projeto, houveram dependências incompatíveis, 
 
 ## Instalando as dependências
 
-- `$ npm install --legacy-peer-deps` ou `yarn`
+- `$ npm install --legacy-peer-deps` ou `$ yarn`
 
 #### Para desenvolvimento
 
-- `$ npm run start:dev` ou `yarn start:dev`
+- `$ npm run start:dev` ou `$ yarn start:dev`
 
 #### Para produção
 
-- `$ npm run build && npm run start:prod` ou `yarn build && yarn start:prod`
+- `$ npm run build && npm run start:prod` ou `$ yarn build && yarn start:prod`
   - O comando `start:prod`, utiliza o <b>PM2</b>
 
 <hr>
@@ -98,4 +98,9 @@ Caso esteja rodando localmente, execute o projeto e acesse http://localhost:3000
 
 Caso esteja utilizando o [NVM](https://github.com/nvm-sh/nvm), há um arquivo ```.nvmrc```, que contém a versão utilizada para o desenvolvimento do projeto
 
+## Suíte de testes
+
+Para rodá-la, utilize o comando:
+
+```$ yarn test``` ou ```$ npm test```
 

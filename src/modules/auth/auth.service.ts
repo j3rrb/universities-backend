@@ -10,13 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
-import {
-  addSeconds,
-  differenceInSeconds,
-  format,
-  isAfter,
-  isBefore,
-} from 'date-fns';
+import { addSeconds, differenceInSeconds, format, isAfter } from 'date-fns';
 import { Model } from 'mongoose';
 import { generatePassword } from 'src/utils/password';
 
@@ -41,27 +35,38 @@ export default class AuthService {
   private logger = new Logger(AuthService.name);
 
   private async generateForgotPasswordToken(user: User) {
-    const ONE_HOUR_SECS = 3600;
-    const FIVE_MIN_SECS = 300;
+    try {
+      const ONE_HOUR_SECS = 3600;
+      const FIVE_MIN_SECS = 300;
 
-    const tokenExp =
-      +this.configService.get<number>('FORGOT_PASSWORD_TOKEN_EXP_SECS') ||
-      ONE_HOUR_SECS;
+      const tokenExp =
+        +this.configService.get<number>('FORGOT_PASSWORD_TOKEN_EXP_SECS') ||
+        ONE_HOUR_SECS;
 
-    const resendExp =
-      +this.configService.get<number>(
-        'FORGOT_PASSWORD_RESEND_TOKEN_EXP_SECS',
-      ) || FIVE_MIN_SECS;
+      const resendExp =
+        +this.configService.get<number>(
+          'FORGOT_PASSWORD_RESEND_TOKEN_EXP_SECS',
+        ) || FIVE_MIN_SECS;
 
-    const hash = randomBytes(64).toString('base64');
-    const newToken = await this.tokenModel.create({
-      token: hash,
-      expDate: addSeconds(new Date(), tokenExp),
-      resendDate: addSeconds(new Date(), resendExp),
-      user,
-    });
+      const hash = randomBytes(64).toString('base64');
+      const newToken = await this.tokenModel.create({
+        token: hash,
+        expDate: addSeconds(new Date(), tokenExp),
+        resendDate: addSeconds(new Date(), resendExp),
+        user,
+      });
 
-    return newToken.token;
+      return newToken.token;
+    } catch (error) {
+      this.logger.error(
+        `Erro ao gerar o token de recuperação de senha: ${error.message}`,
+      );
+
+      throw new HttpException(
+        { message: 'Houve um erro ao gerar o token de recuperação de senha' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async login(data: LoginDTO) {
@@ -84,11 +89,9 @@ export default class AuthService {
         );
       }
 
-      const authData = await this.authModel
-        .findOne({
-          user,
-        })
-        .exec();
+      const authData = await this.authModel.findOne({
+        user,
+      });
 
       if (!authData) {
         throw new HttpException(
@@ -107,15 +110,13 @@ export default class AuthService {
         );
       }
 
-      const updatedAuth = await this.authModel
-        .findByIdAndUpdate(
-          authData.id,
-          {
-            lastAccess: new Date().toISOString(),
-          },
-          { new: true },
-        )
-        .exec();
+      const updatedAuth = await this.authModel.findByIdAndUpdate(
+        authData.id,
+        {
+          lastAccess: new Date().toISOString(),
+        },
+        { new: true },
+      );
 
       if (!updatedAuth) {
         throw new HttpException(
@@ -152,15 +153,13 @@ export default class AuthService {
     try {
       const user = await this.userService.findByEmail(email);
 
-      const token = await this.tokenModel
-        .findOne({
-          user,
-        })
-        .exec();
+      const token = await this.tokenModel.findOne({
+        user,
+      });
 
       if (token) {
         if (isAfter(new Date(), new Date(token.resendDate))) {
-          await this.tokenModel.findByIdAndDelete(token.id).exec();
+          await this.tokenModel.findByIdAndDelete(token.id);
 
           const newToken = await this.generateForgotPasswordToken(user);
 
@@ -216,11 +215,9 @@ export default class AuthService {
         password: currentPassword,
       });
 
-      const passwordToken = await this.tokenModel
-        .findOne({
-          token,
-        })
-        .exec();
+      const passwordToken = await this.tokenModel.findOne({
+        token,
+      });
 
       if (!passwordToken) {
         throw new HttpException(
@@ -229,7 +226,7 @@ export default class AuthService {
         );
       }
 
-      if (isBefore(new Date(), new Date(passwordToken.expDate))) {
+      if (isAfter(new Date(), new Date(passwordToken.expDate))) {
         throw new HttpException(
           { message: 'Token expirado' },
           HttpStatus.BAD_REQUEST,
@@ -238,16 +235,14 @@ export default class AuthService {
 
       const { hash, salt } = await generatePassword(newPassword);
 
-      await this.authModel
-        .findOneAndUpdate(
-          {
-            user: validUser,
-          },
-          { hash, salt },
-        )
-        .exec();
+      await this.authModel.findOneAndUpdate(
+        {
+          user: validUser,
+        },
+        { hash, salt },
+      );
 
-      await this.tokenModel.findByIdAndDelete(passwordToken).exec();
+      await this.tokenModel.findByIdAndDelete(passwordToken);
 
       return `${validUser.firstName} ${validUser.lastName}`;
     } catch (error) {

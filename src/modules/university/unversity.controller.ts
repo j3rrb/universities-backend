@@ -7,7 +7,6 @@ import {
   Get,
   HttpCode,
   HttpException,
-  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
@@ -25,7 +24,6 @@ import {
   GetAllUniversitiesResponse,
   UniversityResponse,
 } from 'src/docs/responseSchemas.doc';
-import { isJSONString } from 'src/utils/validators';
 
 import CreateUniversityDTO from './dtos/create.dto';
 import UpdateUniversityDTO from './dtos/update.dto';
@@ -142,7 +140,7 @@ export class UniversityController {
     } catch (error) {
       const errorObj = JSON.parse(error.message);
 
-      throw new HttpException(errorObj.message, errorObj.code);
+      throw new HttpException({ message: errorObj.message }, errorObj.code);
     }
   }
 }

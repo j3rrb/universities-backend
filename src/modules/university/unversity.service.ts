@@ -55,16 +55,14 @@ export default class UniversityService {
         const exists = await this.getByName(x.name);
 
         if (exists) {
-          const doc = await this.universityModel
-            .findByIdAndUpdate(
-              exists.id,
-              {
-                ...x,
-                updatedAt: new Date().toISOString(),
-              },
-              { new: true },
-            )
-            .exec();
+          const doc = await this.universityModel.findByIdAndUpdate(
+            exists.id,
+            {
+              ...x,
+              updatedAt: new Date().toISOString(),
+            },
+            { new: true },
+          );
 
           return doc;
         }
@@ -167,7 +165,7 @@ export default class UniversityService {
   async getById(id: string) {
     try {
       if (ObjectId.isValid(id)) {
-        const doc = this.universityModel.findById(id);
+        const doc = await this.universityModel.findById(id);
 
         if (!doc) {
           throw new Error(
@@ -209,11 +207,9 @@ export default class UniversityService {
 
   async getByName(name: string) {
     try {
-      const data = this.universityModel
-        .findOne({
-          name,
-        })
-        .exec();
+      const data = await this.universityModel.findOne({
+        name,
+      });
 
       if (!data) {
         throw new Error(
@@ -256,11 +252,9 @@ export default class UniversityService {
         );
       }
 
-      const updated = this.universityModel
-        .findByIdAndUpdate(id, data, {
-          new: true,
-        })
-        .exec();
+      const updated = await this.universityModel.findByIdAndUpdate(id, data, {
+        new: true,
+      });
 
       if (!updated) {
         throw new Error(
@@ -301,12 +295,12 @@ export default class UniversityService {
         );
       }
 
-      const removed = this.universityModel.findByIdAndDelete(id).exec();
+      const removed = await this.universityModel.findByIdAndDelete(id);
 
       if (!removed) {
         throw new Error(
           JSON.stringify({
-            mesage: 'Universidade não encontrada',
+            message: 'Universidade não encontrada',
             code: HttpStatus.NOT_FOUND,
           }),
         );
@@ -315,9 +309,7 @@ export default class UniversityService {
       this.logger.error(`Erro ao remover a universidade: ${error.message}`);
 
       if (isJSONString(error.message)) {
-        const errorObj = JSON.parse(error.message);
-
-        throw new Error(JSON.stringify(errorObj));
+        throw new Error(error.message);
       }
 
       throw new Error(
